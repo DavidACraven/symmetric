@@ -26,6 +26,5 @@
   {
     sylowrestriction.m
     matrixdatabase.m
-    sym128matrix.m
   }
 }
