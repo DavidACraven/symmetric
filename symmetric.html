@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<meta name="generator" content="LaTeX Lwarp package" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Magma Package symmetric</title>
+<link rel="stylesheet" type="text/css" href="lwarp.css" />
+
+<script>
+// Lwarp MathJax emulation code
+//
+// Based on code by Davide P. Cervone.
+// Equation numbering: https://github.com/mathjax/MathJax/issues/2427
+// Starred and ifnextchar macros: https://github.com/mathjax/MathJax/issues/2428
+// \left, \right delimiters: https://github.com/mathjax/MathJax/issues/2535
+//
+// Modified by Brian Dunn to adjust equation numbering and add subequations.
+//
+// LaTeX can use \seteqnumber{subequations?}{section}{number} before each equation.
+// subequations? is 0 usually, 1 if inside subequations.
+// section is a string printed as-is, or empty.
+// number is auto-incremented by MathJax between equations.
+//
+MathJax = {
+  subequations: "0",
+  section: "",
+  loader: {
+    load: ['[tex]/tagformat', '[tex]/textmacros'],
+  },
+  startup: {
+    ready() {
+      // These would be replaced by import commands if you wanted to make
+      // a proper extension.
+      const Configuration = MathJax._.input.tex.Configuration.Configuration;
+      const CommandMap = MathJax._.input.tex.SymbolMap.CommandMap;
+      const Macro = MathJax._.input.tex.Symbol.Macro;
+      const TexError = MathJax._.input.tex.TexError.default;
+      const ParseUtil = MathJax._.input.tex.ParseUtil.default;
+      const expandable = MathJax._.util.Options.expandable;
+
+        // Insert the replacement string into the TeX string, and check
+        // that there haven't been too many maxro substitutions (prevents
+        // infinite loops).
+        const useArgument = (parser, text) => {
+          parser.string = ParseUtil.addArgs(parser, text, parser.string.slice(parser.i));
+          parser.i = 0;
+          if (++parser.macroCount > parser.configuration.options.maxMacros) {
+            throw new TexError('MaxMacroSub1',
+            'MathJax maximum macro substitution count exceeded; ' +
+            'is there a recursive macro call?');
+          }
+        }
+
+        // Create the command map for:
+        //     \ifstar, \ifnextchar, \ifblank, \ifstrequal, \gsub, \seteqnumber
+        new CommandMap('Lwarp-macros', {
+          ifstar: 'IfstarFunction',
+          ifnextchar: 'IfnextcharFunction',
+          ifblank: 'IfblankFunction',
+          ifstrequal: 'IfstrequalFunction',
+          gsubstitute: 'GsubstituteFunction',
+          seteqnumber: 'SeteqnumberFunction'
+        }, {
+          // This function implements an ifstar macro.
+          IfstarFunction(parser, name) {
+             const resultstar = parser.GetArgument(name);
+             const resultnostar = parser.GetArgument(name);
+             const star = parser.GetStar();                 // true if there is a *
+             useArgument(parser, star ? resultstar : resultnostar);
+          },
+
+          // This function implements an ifnextchar macro.
+          IfnextcharFunction(parser, name) {
+            let whichchar = parser.GetArgument(name);
+            if (whichchar.match(/^(?:0x[0-9A-F]+|[0-9]+)$/i)) {
+              // $ syntax highlighting
+              whichchar = String.fromCodePoint(parseInt(whichchar));
+            }
+            const resultnextchar = parser.GetArgument(name);
+            const resultnotnextchar = parser.GetArgument(name);
+            const gotchar = (parser.GetNext() === whichchar);
+            useArgument(parser, gotchar ? resultnextchar : resultnotnextchar);
+          },
+
+          // This function implements an ifblank macro.
+          IfblankFunction(parser, name) {
+            const blankarg = parser.GetArgument(name);
+            const resultblank = parser.GetArgument(name);
+            const resultnotblank = parser.GetArgument(name);
+            const isblank = (blankarg.trim() == "");
+            useArgument(parser, isblank ? resultblank : resultnotblank);
+          },
+
+          // This function implements an ifstrequal macro.
+          IfstrequalFunction(parser, name) {
+            const strequalfirst = parser.GetArgument(name);
+            const strequalsecond = parser.GetArgument(name);
+            const resultequal = parser.GetArgument(name);
+            const resultnotequal = parser.GetArgument(name);
+            const isequal = (strequalfirst == strequalsecond);
+            useArgument(parser, isequal ? resultequal : resultnotequal);
+          },
+
+          // This function implements a gsub macro.
+          GsubstituteFunction(parser, name) {
+            const gsubfirst = parser.GetArgument(name);
+            const gsubsecond = parser.GetArgument(name);
+            const gsubthird = parser.GetArgument(name);
+            let gsubresult=gsubfirst.replace(gsubsecond, gsubthird);
+            useArgument(parser, gsubresult);
+          },
+
+          // This function modifies the equation numbers.
+          SeteqnumberFunction(parser, name) {
+              // Get the macro parameters
+              const star = parser.GetStar();                  // true if there is a *
+              const optBrackets = parser.GetBrackets(name);   // contents of optional brackets
+              const newsubequations = parser.GetArgument(name); // the subequations argument
+              const neweqsection = parser.GetArgument(name); // the eq section argument
+              const neweqnumber = parser.GetArgument(name);   // the eq number argument
+              MathJax.config.subequations=newsubequations ;   // a string with boolean meaning
+              MathJax.config.section=neweqsection ;           // a string with numeric meaning
+              parser.tags.counter = parser.tags.allCounter = neweqnumber ;
+          }
+
+        });
+
+        // Create the Lwarp-macros package
+        Configuration.create('Lwarp-macros', {
+          handler: {macro: ['Lwarp-macros']}
+        });
+
+        MathJax.startup.defaultReady();
+
+        // For forward references:
+        MathJax.startup.input[0].preFilters.add(({math}) => {
+          if (math.inputData.recompile){
+              MathJax.config.subequations = math.inputData.recompile.subequations;
+              MathJax.config.section = math.inputData.recompile.section;
+          }
+        });
+        MathJax.startup.input[0].postFilters.add(({math}) => {
+          if (math.inputData.recompile){
+              math.inputData.recompile.subequations = MathJax.config.subequations;
+              math.inputData.recompile.section = MathJax.config.section;
+          }
+        });
+
+          // For \left, \right with unicode-math:
+          const {DelimiterMap} = MathJax._.input.tex.SymbolMap;
+          const {Symbol} = MathJax._.input.tex.Symbol;
+          const {MapHandler} = MathJax._.input.tex.MapHandler;
+          const delimiter = MapHandler.getMap('delimiter');
+          delimiter.add('\\lBrack', new Symbol('\\lBrack', '\u27E6'));
+          delimiter.add('\\rBrack', new Symbol('\\rBrack', '\u27E7'));
+          delimiter.add('\\lAngle', new Symbol('\\lAngle', '\u27EA'));
+          delimiter.add('\\rAngle', new Symbol('\\rAngle', '\u27EB'));
+          delimiter.add('\\lbrbrak', new Symbol('\\lbrbrak', '\u2772'));
+          delimiter.add('\\rbrbrak', new Symbol('\\rbrbrak', '\u2773'));
+          delimiter.add('\\lbag', new Symbol('\\lbag', '\u27C5'));
+          delimiter.add('\\rbag', new Symbol('\\rbag', '\u27C6'));
+          delimiter.add('\\llparenthesis', new Symbol('\\llparenthesis', '\u2987'));
+          delimiter.add('\\rrparenthesis', new Symbol('\\rrparenthesis', '\u2988'));
+          delimiter.add('\\llangle', new Symbol('\\llangle', '\u2989'));
+          delimiter.add('\\rrangle', new Symbol('\\rrangle', '\u298A'));
+          delimiter.add('\\Lbrbrak', new Symbol('\\Lbrbrak', '\u27EC'));
+          delimiter.add('\\Rbrbrak', new Symbol('\\Rbrbrak', '\u27ED'));
+          delimiter.add('\\lBrace', new Symbol('\\lBrace', '\u2983'));
+          delimiter.add('\\rBrace', new Symbol('\\rBrace', '\u2984'));
+          delimiter.add('\\lParen', new Symbol('\\lParen', '\u2985'));
+          delimiter.add('\\rParen', new Symbol('\\rParen', '\u2986'));
+          delimiter.add('\\lbrackubar', new Symbol('\\lbrackubar', '\u298B'));
+          delimiter.add('\\rbrackubar', new Symbol('\\rbrackubar', '\u298C'));
+          delimiter.add('\\lbrackultick', new Symbol('\\lbrackultick', '\u298D'));
+          delimiter.add('\\rbracklrtick', new Symbol('\\rbracklrtick', '\u298E'));
+          delimiter.add('\\lbracklltick', new Symbol('\\lbracklltick', '\u298F'));
+          delimiter.add('\\rbrackurtick', new Symbol('\\rbrackurtick', '\u2990'));
+          delimiter.add('\\langledot', new Symbol('\\langledot', '\u2991'));
+          delimiter.add('\\rangledot', new Symbol('\\rangledot', '\u2992'));
+          delimiter.add('\\lparenless', new Symbol('\\lparenless', '\u2993'));
+          delimiter.add('\\rparengtr', new Symbol('\\rparengtr', '\u2994'));
+          delimiter.add('\\Lparengtr', new Symbol('\\Lparengtr', '\u2995'));
+          delimiter.add('\\Rparenless', new Symbol('\\Rparenless', '\u2996'));
+          delimiter.add('\\lblkbrbrak', new Symbol('\\lblkbrbrak', '\u2997'));
+          delimiter.add('\\rblkbrbrak', new Symbol('\\rblkbrbrak', '\u2998'));
+          delimiter.add('\\lvzigzag', new Symbol('\\lvzigzag', '\u29D8'));
+          delimiter.add('\\rvzigzag', new Symbol('\\rvzigzag', '\u29D9'));
+          delimiter.add('\\Lvzigzag', new Symbol('\\Lvzigzag', '\u29DA'));
+          delimiter.add('\\Rvzigzag', new Symbol('\\Rvzigzag', '\u29DB'));
+          delimiter.add('\\lcurvyangle', new Symbol('\\lcurvyangle', '\u29FC'));
+          delimiter.add('\\rcurvyangle', new Symbol('\\rcurvyangle', '\u29FD'));
+          delimiter.add('\\Vvert', new Symbol('\\Vvert', '\u2980'));
+    }     // ready
+  },      // startup
+
+  tex: {
+    packages: {'[+]': ['tagformat', 'Lwarp-macros', 'textmacros']},
+    tags: "ams",
+         tagformat: {
+             number: function (n) {
+                 if(MathJax.config.subequations==0)
+                     return(MathJax.config.section + n);
+                 else
+                     return(MathJax.config.section + String.fromCharCode(96+n));
+             },
+         },
+  }
+}
+</script>
+
+<script
+    id="MathJax-script"
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
+></script>
+
+</head>
+<body>
+
+
+
+<div class="bodywithoutsidetoc">
+
+
+
+<main class="bodycontainer">
+
+
+
+<section class="textbody">
+
+<a id="symmetric-autofile-0"></a>
+
+<!--MathJax customizations:-->
+
+
+<div class="hidden">
+
+\(\newcommand{\footnotename}{footnote}\)
+
+\(\def \LWRfootnote {1}\)
+
+\(\newcommand {\footnote }[2][\LWRfootnote ]{{}^{\mathrm {#1}}}\)
+
+\(\newcommand {\footnotemark }[1][\LWRfootnote ]{{}^{\mathrm {#1}}}\)
+
+\(\let \LWRorighspace \hspace \)
+
+\(\renewcommand {\hspace }{\ifstar \LWRorighspace \LWRorighspace }\)
+
+\(\newcommand {\mathnormal }[1]{{#1}}\)
+
+\(\newcommand \ensuremath [1]{#1}\)
+
+\(\newcommand {\LWRframebox }[2][]{\fbox {#2}} \newcommand {\framebox }[1][]{\LWRframebox } \)
+
+\(\newcommand {\setlength }[2]{}\)
+
+\(\newcommand {\addtolength }[2]{}\)
+
+\(\newcommand {\setcounter }[2]{}\)
+
+\(\newcommand {\addtocounter }[2]{}\)
+
+\(\newcommand {\arabic }[1]{}\)
+
+\(\newcommand {\number }[1]{}\)
+
+\(\newcommand {\noalign }[1]{\text {#1}\notag \\}\)
+
+\(\newcommand {\cline }[1]{}\)
+
+\(\newcommand {\directlua }[1]{\text {(directlua)}}\)
+
+\(\newcommand {\luatexdirectlua }[1]{\text {(directlua)}}\)
+
+\(\newcommand {\protect }{}\)
+
+\(\def \LWRabsorbnumber #1 {}\)
+
+\(\def \LWRabsorbquotenumber &quot;#1 {}\)
+
+\(\newcommand {\LWRabsorboption }[1][]{}\)
+
+\(\newcommand {\LWRabsorbtwooptions }[1][]{\LWRabsorboption }\)
+
+\(\def \mathchar {\ifnextchar &quot;\LWRabsorbquotenumber \LWRabsorbnumber }\)
+
+\(\def \mathcode #1={\mathchar }\)
+
+\(\let \delcode \mathcode \)
+
+\(\let \delimiter \mathchar \)
+
+\(\def \oe {\unicode {x0153}}\)
+
+\(\def \OE {\unicode {x0152}}\)
+
+\(\def \ae {\unicode {x00E6}}\)
+
+\(\def \AE {\unicode {x00C6}}\)
+
+\(\def \aa {\unicode {x00E5}}\)
+
+\(\def \AA {\unicode {x00C5}}\)
+
+\(\def \o {\unicode {x00F8}}\)
+
+\(\def \O {\unicode {x00D8}}\)
+
+\(\def \l {\unicode {x0142}}\)
+
+\(\def \L {\unicode {x0141}}\)
+
+\(\def \ss {\unicode {x00DF}}\)
+
+\(\def \SS {\unicode {x1E9E}}\)
+
+\(\def \dag {\unicode {x2020}}\)
+
+\(\def \ddag {\unicode {x2021}}\)
+
+\(\def \P {\unicode {x00B6}}\)
+
+\(\def \copyright {\unicode {x00A9}}\)
+
+\(\def \pounds {\unicode {x00A3}}\)
+
+\(\let \LWRref \ref \)
+
+\(\renewcommand {\ref }{\ifstar \LWRref \LWRref }\)
+
+\( \newcommand {\multicolumn }[3]{#3}\)
+
+\(\require {textcomp}\)
+
+\(\newcommand {\intertext }[1]{\text {#1}\notag \\}\)
+
+\(\let \Hat \hat \)
+
+\(\let \Check \check \)
+
+\(\let \Tilde \tilde \)
+
+\(\let \Acute \acute \)
+
+\(\let \Grave \grave \)
+
+\(\let \Dot \dot \)
+
+\(\let \Ddot \ddot \)
+
+\(\let \Breve \breve \)
+
+\(\let \Bar \bar \)
+
+\(\let \Vec \vec \)
+
+\( \newcommand {\ms }[1]{\mathscr {#1}} \newcommand {\mf }[1]{\mathfrak {#1}} \newcommand {\ml }[1]{\mathtt {#1}} \newcommand {\mc }[1]{\mathcal {#1}} \)
+
+\( \newcommand {\N }{\mathbb {N}} \newcommand {\Q }{\mathbb {Q}} \newcommand {\R }{\mathbb {R}} \newcommand {\Z }{\mathbb {Z}} \newcommand {\C }{\mathbb {C}} \newcommand {\Ham }{\mathbb {H}} \newcommand {\Oct }{\mathbb {O}} \)
+
+\( \newcommand {\e }{\mathrm {e}} \newcommand {\I }{\mathrm {i}} \newcommand {\ep }{\varepsilon } \newcommand {\sech }{\operatorname {sech}} \newcommand {\cosec }{\operatorname {cosec}} \newcommand {\cosech }{\operatorname {cosech}}
+\newcommand {\half }{\frac {1}{2}} \newcommand {\quart }{\frac {1}{4}} \newcommand {\third }{\frac {1}{3}} \newcommand {\invn }[1]{\frac {1}{#1}} \newcommand {\fst }{1$^{\text {st}}$} \newcommand {\snd }{2$^{\text {nd}}$} \newcommand
+{\thd }{3$^{\text {rd}}$} \newcommand {\nth }[1]{#1$^{\text {th}}$} \newcommand {\nst }[1]{#1$^{\text {st}}$} \newcommand {\nnd }[1]{#1$^{\text {nd}}$} \newcommand {\nrd }[1]{#1$^{\text {rd}}$} \)
+
+\( \renewcommand {\geq }{\geqslant } \renewcommand {\leq }{\leqslant } \renewcommand {\(}{\left (} \renewcommand {\)}{\right )} \)
+
+\( \newcommand {\imp }{\Longrightarrow } \newcommand {\lpmi }{\leftarrow } \newcommand {\limp }{\rightarrow } \newcommand {\liff }{\leftrightarrow } \newcommand {\union }{\cup } \newcommand {\entails }{\vdash } \newcommand {\subs
+}{\subseteq } \newcommand {\sups }{\supseteq } \)
+
+\( \newcommand {\infsum }{\sum _{n=0}^{\infty }} \newcommand {\infsumo }{\sum _{n=1}^{\infty }} \newcommand {\partsum }{\sum _{i=1}^n} \newcommand {\inflim }{\lim _{n\to \infty }} \newcommand {\zerolimh }{\lim _{h\to 0}} \newcommand
+{\nequiv }{\not \equiv } \newcommand {\im }{\operatorname {im}} \newcommand {\lcm }{\mathrm {lcm}} \newcommand {\fn }{function} \newcommand {\floor }[1]{\lfloor #1 \rfloor } \newcommand {\ceiling }[1]{\lceil #1 \rceil } \newcommand {\comp
+}{\!\circ \!} \)
+
+\( \newcommand {\rank }{\operatorname {rank}} \newcommand {\spann }{\operatorname {span}} \newcommand {\Aut }{\operatorname {Aut}} \newcommand {\End }{\operatorname {End}} \newcommand {\Gal }{\operatorname {Gal}} \newcommand {\am
+}{automorphism} \newcommand {\Am }{Automorphism} \newcommand {\IM }{isomorphism} \newcommand {\hm }{homomorphism} \newcommand {\Hm }{Homomorphism} \newcommand {\GF }{\operatorname {GF}} \newcommand {\F }{\mathbb {F}} \newcommand {\charac
+}{\operatorname {char}} \newcommand {\codim }{\operatorname {codim}} \newcommand {\projects }{\twoheadrightarrow } \newcommand {\injects }{\hookrightarrow } \newcommand {\varinjects }{\rightarrowtail } \newcommand {\gen }[1]{\langle
+#1\rangle } \)
+
+\( \newcommand {\Out }{\operatorname {Out}} \newcommand {\Inn }{\operatorname {Inn}} \newcommand {\normal }{\trianglelefteqslant } \newcommand {\normalopp }{\trianglerighteqslant } \newcommand {\Norm }{\operatorname {N}} \newcommand
+{\Cent }{\operatorname {C}} \newcommand {\id }{\mathrm {id}} \newcommand {\Frat }{\operatorname {\Phi }} \newcommand {\Fit }{\operatorname {F}} \newcommand {\centre }[1]{\operatorname {Z}\left (#1\right )} \newcommand {\central }[2]{\opn
+{Z}_{#1}\(#2\)} \newcommand {\Stab }{\operatorname {Stab}} \newcommand {\Sym }{\operatorname {Sym}} \newcommand {\Alt }{\operatorname {Alt}} \newcommand {\Orb }{\mathrm {Orb}} \newcommand {\Fix }{\mathrm {Fix}} \newcommand {\Syl }{\opn
+{Syl}} \newcommand {\rot }{\operatorname {rot}} \newcommand {\Gen }[2]{\langle \,#1\,:\,#2\rangle } \newcommand {\Conj }[2]{\mathrm {Conj}_{#1}(#2)} \newcommand {\cl }{\operatorname {cl}} \)
+
+\( \newcommand {\GL }{\operatorname {GL}} \newcommand {\PGL }{\operatorname {PGL}} \newcommand {\SL }{\operatorname {SL}} \newcommand {\PSL }{\operatorname {PSL}} \newcommand {\Sp }{\operatorname {Sp}} \newcommand {\PSp }{\operatorname
+{PSp}} \newcommand {\GU }{\operatorname {GU}} \newcommand {\PGU }{\operatorname {PGU}} \newcommand {\SU }{\operatorname {SU}} \newcommand {\PSU }{\operatorname {PSU}} \newcommand {\Unit }{\operatorname {U}} \newcommand {\Orth
+}{\operatorname {O}} \newcommand {\SO }{\operatorname {SO}} \newcommand {\POmega }{\operatorname {P\Omega }} \newcommand {\Spin }{\operatorname {Spin}} \newcommand {\Pin }{\operatorname {Pin}} \newcommand {\PSO }{\operatorname {PSO}}
+\newcommand {\PO }{\operatorname {PO}} \newcommand {\UT }{\operatorname {UT}} \newcommand {\PL }{\operatorname {PL}} \newcommand {\SUT }{\operatorname {SUT}} \newcommand {\SD }{\operatorname {SD}} \newcommand {\Mod }{\operatorname {Mod}}
+\)
+
+\( \newcommand {\lgl }{\mathfrak {gl}} \newcommand {\lsl }{\mathfrak {sl}} \newcommand {\lorth }{\mathfrak {o}} \newcommand {\lsp }{\mathfrak {sp}} \newcommand {\ad }{\operatorname {ad}} \)
+
+\( \newcommand {\projdim }{\operatorname {projdim}} \newcommand {\injdim }{\operatorname {injdim}} \newcommand {\Soc }{\operatorname {soc}} \newcommand {\soc }{\Soc } \newcommand {\rad }{\operatorname {rad}} \newcommand {\Top
+}{\operatorname {top}} \newcommand {\Hom }{\operatorname {Hom}} \newcommand {\Ext }{\operatorname {Ext}} \newcommand {\Tor }{\operatorname {Tor}} \newcommand {\ind }[1]{\uparrow ^{#1}} \newcommand {\res }[1]{\downarrow _{#1}} \newcommand
+{\Br }{\operatorname {Br}} \newcommand {\proj }{\mc P} \)
+
+\( \newcommand {\der }[2]{\frac {\mathrm {d}#1}{\mathrm {d}#2}} \newcommand {\dert }[2]{\frac {\mathrm {d}^2#1}{\mathrm {d}#2^2}} \newcommand {\parti }[2]{\frac {\partial #1}{\partial #2}} \newcommand {\partisq }[2]{\frac {\partial ^2
+#1}{\partial #2^2}} \newcommand {\partisp }[3]{\frac {\partial ^2 #1}{\partial #2\partial #3}} \newcommand {\dt }{\mathrm {d}t} \newcommand {\dx }{\mathrm {d}x} \newcommand {\dz }{\mathrm {d}z} \newcommand {\ds }{\mathrm {d}s} \newcommand
+{\dy }{\mathrm {d}y} \newcommand {\dint }{\mathrm {d}} \newcommand {\phihat }{\widehat {\phi }} \newcommand {\bigO }[1]{\Orth \!\left (#1\right )} \newcommand {\doubint }{\int \!\!\int } \newcommand {\lint }{\int _0^\infty } \newcommand
+{\infintd }[1]{\int _{#1=-\infty }^{#1=\infty }} \newcommand {\laptrans }[3]{\int _0^\infty #1\left (#2\right )\e ^{-#3 #2}\,\dint #2} \newcommand {\xbar }{\overline {x}} \newcommand {\xdot }{\dot {x}} \newcommand {\ydot }{\dot {y}}
+\renewcommand {\div }[1]{\b {\nabla }\!\cdot \!\b {#1}} \newcommand {\grad }[1]{\b {\nabla } #1} \newcommand {\grads }[1]{\nabla ^2 #1} \newcommand {\gradsv }[1]{\b {\nabla }^2\b {#1}} \newcommand {\curl }[1]{\b {\nabla }\!\wedge \!\b
+{#1}} \newcommand {\dotgrad }[2]{(\b {#1}\!\cdot \!\b {\nabla })\b {#2}} \newcommand {\dotgrads }[2]{(\b {#1}\!\cdot \!\b {\nabla })#2} \)
+
+\( \renewcommand {\Syl }{\mathrm {Syl}} \)
+
+</div>
+
+<a id="symmetric-autopage-1"></a>
+<div class="titlepage">
+
+<h1>Magma Package <kbd>symmetric</kbd></h1>
+
+
+
+<div class="author">
+
+
+<div class="oneauthor">
+
+<p>
+David A. Craven
+</p>
+</div>
+
+</div>
+
+
+
+<div class="titledate">
+
+<p>
+Version 1.3: March 27, 2025
+</p>
+</div>
+
+</div>
+<!--
+......   chapter Contents ......
+-->
+<h3 id="autosec-3">Contents</h3>
+<a id="symmetric-autopage-3"></a>
+
+
+
+
+<nav class="toc">
+
+<p>
+<a href="symmetric.html#autosec-4" class="tocchapter" >
+<span class="sectionnumber">1</span>&#x2003;Functions regarding partitions</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-5" class="tocsection" >
+<span class="sectionnumber">1.1</span>&#x2003;Printing partitions</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-6" class="tocsection" >
+<span class="sectionnumber">1.2</span>&#x2003;Counting partitions</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-7" class="tocsection" >
+<span class="sectionnumber">1.3</span>&#x2003;Special partitions</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-8" class="tocsection" >
+<span class="sectionnumber">1.4</span>&#x2003;Self-conjugate partitions</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-9" class="tocsection" >
+<span class="sectionnumber">1.5</span>&#x2003;Iterator for partitions</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-10" class="tocsection" >
+<span class="sectionnumber">1.6</span>&#x2003;Hooks, \(\beta \)-sets, etc.</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-11" class="tocsection" >
+<span class="sectionnumber">1.7</span>&#x2003;Conjugacy classes</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-12" class="tocchapter" >
+<span class="sectionnumber">2</span>&#x2003;Character degrees and their multiplicities</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-13" class="tocsection" >
+<span class="sectionnumber">2.1</span>&#x2003;Maximal character degrees</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-14" class="tocsection" >
+<span class="sectionnumber">2.2</span>&#x2003;Multiplicities of character degrees</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-15" class="tocsection" >
+<span class="sectionnumber">2.3</span>&#x2003;\(\infty \)-partitions and partition clusters</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-16" class="tocsubsection" >
+<span class="sectionnumber">2.3.1</span>&#x2003;General commands</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-17" class="tocsubsection" >
+<span class="sectionnumber">2.3.2</span>&#x2003;Commands to access databases</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-18" class="tocsection" >
+<span class="sectionnumber">2.4</span>&#x2003;Characters for \(\mathrm {GL}_n(q)\) and \(\mathrm {GU}_n(q)\)</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-19" class="tocchapter" >
+<span class="sectionnumber">3</span>&#x2003;Restrictions of characters of Sylow subgroups</a>
+</p>
+
+
+<p>
+<a href="symmetric.html#autosec-20" class="tocchapter" >
+<span class="sectionnumber">4</span>&#x2003;Changes since original</a>
+</p>
+</nav>
+
+<p>
+The aim of this documentation is to cover all of the new commands introduced in the <kbd>symmetric</kbd> package. To run it, use <kbd>AttachSpec("symmetric.s");</kbd>.
+</p>
+<!--
+......   chapter Functions regarding partitions ......
+-->
+<h3 id="autosec-4">Chapter&nbsp;<span class="sectionnumber">1&#x2003;</span>Functions regarding partitions</h3>
+<a id="symmetric-autopage-4"></a>
+<!--
+......   section Printing partitions ......
+-->
+<h4 id="autosec-5"><span class="sectionnumber">1.1&#x2003;</span>Printing partitions</h4>
+<a id="symmetric-autopage-5"></a>
+
+
+<p>
+<kbd>PrintReducedFormPartition(pa::SeqEnum[RngIntElt]) -> MonStgElt</kbd>
+</p>
+
+<p>
+Prints a partition in reduced form, suitable to including in a <span class="latexlogofont"><span class="latexlogo">L<span class="latexlogosup">a</span>T<span class="latexlogosub">e</span>X</span></span> document. So, for example, the partition with one
+3 and nine 1s is printed as \((3,1^9)\).
+</p>
+<!--
+......   section Counting partitions ......
+-->
+<h4 id="autosec-6"><span class="sectionnumber">1.2&#x2003;</span>Counting partitions</h4>
+<a id="symmetric-autopage-6"></a>
+
+
+<p>
+<kbd>NumberOfPartitionsWithAtMostParts(n::RngIntElt,k::RngIntElt) -> RngIntElt</kbd>
+</p>
+
+<p>
+Given a non-negative integer <kbd>n</kbd> and a positive integer <kbd>k</kbd>, returns the number of partitions of <kbd>n</kbd> into at most <kbd>k</kbd> parts.<br />
+
+
+</p>
+
+<p>
+<kbd>NumberOfPartitionsWithExactlyParts(n::RngIntElt,k::RngIntElt) -> RngIntElt</kbd>
+</p>
+
+<p>
+Given a non-negative integer <kbd>n</kbd> and a positive integer <kbd>k</kbd>, returns the number of partitions of <kbd>n</kbd> into exactly <kbd>k</kbd> parts.
+</p>
+<!--
+......   section Special partitions ......
+-->
+<h4 id="autosec-7"><span class="sectionnumber">1.3&#x2003;</span>Special partitions</h4>
+<a id="symmetric-autopage-7"></a>
+
+
+<p>
+<kbd>HookPartitions(n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The collection of all hook partitions of size <kbd>n</kbd>, ordered lexicographically.<br />
+
+
+</p>
+
+<p>
+<kbd>AlmostHookPartitions(n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The collection of all almost-hook partitions of size <kbd>n</kbd>, ordered lexicographically.<br />
+
+
+</p>
+
+<p>
+<kbd>TwoPartPartitions(n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The collection of all partitions of size <kbd>n</kbd> with exactly two parts, ordered lexicographically.<br />
+
+
+</p>
+
+<p>
+<kbd>ThreePartPartitions(n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The collection of all partitions of size <kbd>n</kbd> with exactly three parts, ordered lexicographically.
+</p>
+<!--
+......   section Self-conjugate partitions ......
+-->
+<h4 id="autosec-8"><span class="sectionnumber">1.4&#x2003;</span>Self-conjugate partitions</h4>
+<a id="symmetric-autopage-8"></a>
+
+
+<p>
+<kbd>IsSelfConjugate(pa::SeqEnum[RngIntElt]) -> BoolElt</kbd>
+</p>
+
+<p>
+Return true if the partition <kbd>pa</kbd> is self-conjugate. Input must be a partition with no trailing zeros.<br />
+
+
+</p>
+
+<p>
+<kbd>SelfConjugatePartitions(n::RngIntElt,k::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The self-conjugate partitions of <kbd>n</kbd> of length at most <kbd>k</kbd> (or equivalently with first row of size at most <kbd>k</kbd>), (<kbd>n</kbd> \(\geq 0\), <kbd>k</kbd> \(\geq 0\)).<br />
+
+
+</p>
+
+<p>
+<kbd>SelfConjugatePartitions(n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The unrestricted self-conjugate partitions of <kbd>n</kbd> (<kbd>n</kbd> \(\geq 0\)).<br />
+
+
+</p>
+
+<p>
+<kbd>NumberOfSelfConjugatePartitions(n::RngIntElt) -> RngIntElt</kbd>
+</p>
+
+<p>
+The number of unrestricted self-conjugate partitions of the non-negative integer <kbd>n</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>SelfConjugateEndoskeleton(pa::[RngIntElt]) -> SeqEnum</kbd>
+</p>
+
+<p>
+Computes the largest self-conjugate partition contained within the partition <kbd>pa</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>SelfConjugateExoskeleton(pa::[RngIntElt]) -> SeqEnum</kbd>
+</p>
+
+<p>
+Computes the smallest self-conjugate partition containing the partition <kbd>pa</kbd>.
+</p>
+<!--
+......   section Iterator for partitions ......
+-->
+<h4 id="autosec-9"><span class="sectionnumber">1.5&#x2003;</span>Iterator for partitions</h4>
+<a id="symmetric-autopage-9"></a>
+
+
+<p>
+To construct all partitions of <kbd>n</kbd>, Magma has the in-built command <kbd>Partitions(n)</kbd>. This is very space-intensive for <kbd>n</kbd> \(\geq 100\), so an iterator is required. We also include a function that computes the partition that has position
+<kbd>m</kbd> in the lexicographic ordering on partitions.<br />
+
+
+</p>
+
+<p>
+<kbd>NextPartition(pa::SeqEnum[RngIntElt],n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Given a partition <kbd>pa</kbd> of size <kbd>n</kbd> (where <kbd>n</kbd> is specified to speed up calculations slightly), returns the next partition in the lexicographic ordering on partitions. If (1\(^\texttt {n}\)) is given as input, it returns (<kbd>n</kbd>). Note that
+no checking is done as to whether the input is a partition with no trailing zeros, to maintain speed.<br />
+
+
+</p>
+
+<p>
+<span class="texttt">NextPartition(~pa::SeqEnum[RngIntElt],n::RngIntElt)</span>
+</p>
+
+<p>
+Given a partition <kbd>pa</kbd> of size <kbd>n</kbd> (where <kbd>n</kbd> is specified to speed up calculations slightly), destructively returns the next partition in the lexicographic ordering on partitions. If (1\(^\texttt {n}\)) is given as input, it returns
+(<kbd>n</kbd>). Note that no checking is done as to whether the input is a partition with no trailing zeros, to maintain speed.<br />
+
+
+</p>
+
+<p>
+<kbd>NextPartition(pa::SeqEnum[RngIntElt]) -> SeqEnum</kbd>
+</p>
+
+<p>
+Given a partition <kbd>pa</kbd> of length <kbd>n</kbd>, returns the next partition in the lexicographic ordering on partitions. If (1\(^\texttt {n}\)) is given as input, it returns (<kbd>n</kbd>).<br />
+
+
+</p>
+
+<p>
+<span class="texttt">NextPartition(~pa::SeqEnum[RngIntElt])</span>
+</p>
+
+<p>
+Given a partition <kbd>pa</kbd> of length <kbd>n</kbd>, destructively returns the next partition in the lexicographic ordering on partitions. If (1\(^\texttt {n}\)) is given as input, it returns (<kbd>n</kbd>).<br />
+
+
+</p>
+
+<p>
+<kbd>IndexToPartition(n::RngIntElt,m::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Given a non-negative integer <kbd>n</kbd> and a positive integer <kbd>m</kbd>, returns the <kbd>m</kbd>th partition of size <kbd>n</kbd> in the lexicographic ordering on partitions, so the <kbd>m</kbd>th entry in the sequence <kbd>Partitions(n)</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>IndexToPartition(P::SeqEnum[RngIntElt]) -> RngIntElt</kbd>
+</p>
+
+<p>
+Returns the index of the partition with respect to lexigraphical ordering among partitions of the same size. (One is the first index by default, can be changed with the parameter <kbd>StartAtIndex</kbd>.) This is much faster than the inbuilt Magma command
+<kbd>IndexOfPartition</kbd> for larger partitions. Note that the Magma command starts counting at 0 whereas this function counts at 1, so it inverts the <kbd>IndexToPartition</kbd> function.<br />
+
+
+</p>
+<!--
+......   section Hooks, -sets, etc.     ......
+-->
+<h4 id="autosec-10"><span class="sectionnumber">1.6&#x2003;</span>Hooks, \(\beta \)-sets, etc.</h4>
+<a id="symmetric-autopage-10"></a>
+
+
+<p>
+This section covers extra commands regarding moving between \(\beta \)-sets and partitions, and other things associated to \(\beta \)-sets.<br />
+
+
+</p>
+
+<p>
+<kbd>IsBetaSet(X::SetEnum[RngIntElt]) -> BoolElt,SeqEnum</kbd>
+</p>
+
+<p>
+Returns true and the corresponding partition if <kbd>X</kbd> is a beta set, and false otherwise.<br />
+
+
+</p>
+
+<p>
+<kbd>PartitionToBetaSet(pa::SeqEnum[RngIntElt]) -> SetEnum</kbd>
+</p>
+
+<p>
+Returns the corresponding ’standard’ beta-set to the partition <kbd>pa</kbd>. This is the beta-set with no 0.<br />
+
+
+</p>
+
+<p>
+<kbd>BetaSetToPartition(X::SetEnum[RngIntElt]) -> SeqEnum</kbd>
+</p>
+
+<p>
+Returns the partition corresponding to the beta-set <kbd>X</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>StandardBetaSet(X::SetEnum[RngIntElt]) -> SetEnum</kbd>
+</p>
+
+<p>
+Returns the standard beta-set equivalent to <kbd>X</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>AreEquivalent(X::SetEnum[RngIntElt],Y::SetEnum[RngIntElt]) -> BoolElt,SetEnum</kbd>
+</p>
+
+<p>
+Returns true is the beta-sets <kbd>X</kbd> and <kbd>Y</kbd> are equivalent, and if so the standard beta-set equivalent to both of them.<br />
+
+
+</p>
+
+<p>
+<kbd>ConjugateBetaSet(X::SetEnum[RngIntElt]) -> SetEnum</kbd>
+</p>
+
+<p>
+The standard beta-set corresponding to the conjugate partition of the partition corresponding to the beta-set <kbd>X</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>HookLengths(pa::SeqEnum[RngIntElt]) -> SetMulti</kbd>
+</p>
+
+<p>
+Returns the multiset of hook lengths of the partition <kbd>pa</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>PrintAbacus(pa::SeqEnum[RngIntElt],t::RngIntElt) -> MonStgElt</kbd>
+</p>
+
+<p>
+Prints the <kbd>t</kbd>-abacus corresponding to the partition <kbd>pa</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>PrintAbacus(X::SetEnum[RngIntElt],t::RngIntElt) -> MonStgElt</kbd>
+</p>
+
+<p>
+Prints the <kbd>t</kbd>-abacus corresponding to the beta-set <kbd>X</kbd> of first-column hook lengths.
+</p>
+<!--
+......   section Conjugacy classes ......
+-->
+<h4 id="autosec-11"><span class="sectionnumber">1.7&#x2003;</span>Conjugacy classes</h4>
+<a id="symmetric-autopage-11"></a>
+
+
+<p>
+<kbd>NumberOfSymmetricConjugacyClassSizes(n::RngIntElt) -> RngIntElt</kbd>
+</p>
+
+<p>
+Returns the cardinality of the set of conjugacy class sizes of the symmetric group of degree <kbd>n</kbd>. For <kbd>n</kbd> up to 100 this is returned from a lookup table. Otherwise the result is calculated, which can take some time.
+</p>
+<!--
+......   chapter Character degrees and their multiplicities ......
+-->
+<h3 id="autosec-12">Chapter&nbsp;<span class="sectionnumber">2&#x2003;</span>Character degrees and their multiplicities</h3>
+<a id="symmetric-autopage-12"></a>
+
+
+<p>
+One of the more interesting aspects of symmetric group representation theory is how certain questions, which are very easy for groups of Lie type, are incredibly difficult for symmetric groups, and vice versa. While it is fairly easy to understand minimal degrees of
+symmetric group representations, second and third minimal, and even higher, for groups of Lie type this is a difficult problem that has mostly been solved now.
+</p>
+
+<p>
+On the other hand, it’s generally not so bad to describe what characters of large degree look like. Asymptotically they are the Steinberg, and Deligne–Lusztig theory gives us a relatively satisfactory answer.
+</p>
+
+<p>
+For symmetric groups things are much harder in some sense.
+</p>
+<!--
+......   section Maximal character degrees ......
+-->
+<h4 id="autosec-13"><span class="sectionnumber">2.1&#x2003;</span>Maximal character degrees</h4>
+<a id="symmetric-autopage-13"></a>
+
+
+<p>
+These functions use a lookup table up to <kbd>n</kbd> = 150. Above that they construct the answer, which is quite slow and uses a large amount of memory. This will fail if you computer has less than 5TB of RAM.<br />
+
+
+</p>
+
+<p>
+<kbd>MaximalSymmetricCharacterDegree(n::RngIntElt) -> RngIntElt,SetEnum</kbd>
+</p>
+
+<p>
+Returns the largest degree of an irreducible character of the symmetric group of degree <kbd>n</kbd>. The first output is the degree, the second is the set of partitions corresponding to the irreducible characters of that degree. For <kbd>n</kbd> at most 150 this is
+returned from a lookup table. Otherwise the result is calculated, which will take a long time and definitely fail if you computer has less than 5TB of RAM.<br />
+
+
+</p>
+
+<p>
+<kbd>SecondMaximalSymmetricCharacterDegree(n::RngIntElt) -> RngIntElt,SetEnum</kbd>
+</p>
+
+<p>
+Returns the second largest degree of an irreducible character of the symmetric group of degree <kbd>n</kbd>. The first output is the degree, the second is the set of partitions corresponding to the irreducible characters of that degree. For <kbd>n</kbd> at most 150 this is
+returned from a lookup table. Otherwise the result is calculated, which will take a long time and definitely fail if you computer has less than 5TB of RAM.<br />
+
+
+</p>
+
+<p>
+<kbd>ThirdMaximalSymmetricCharacterDegree(n::RngIntElt) -> RngIntElt,SetEnum</kbd>
+</p>
+
+<p>
+Returns the third largest degree of an irreducible character of the symmetric group of degree <kbd>n</kbd>. The first output is the degree, the second is the set of partitions corresponding to the irreducible characters of that degree. For <kbd>n</kbd> at most 150 this is
+returned from a lookup table. Otherwise the result is calculated, which will take a long time and definitely fail if you computer has less than 5TB of RAM.
+</p>
+<!--
+......   section Multiplicities of character degrees ......
+-->
+<h4 id="autosec-14"><span class="sectionnumber">2.2&#x2003;</span>Multiplicities of character degrees</h4>
+<a id="symmetric-autopage-14"></a>
+
+
+<p>
+These functions also use a lookup table up to <kbd>n</kbd> = 129. Above that there are hard limits in Magma about the size of constructible sets that make things challenging, and the values of the functions below have not been calculated.<br />
+
+
+</p>
+
+<p>
+<kbd>MaximumMultiplicityOfSymmetricCharacterDegree(n::RngIntElt) -> RngIntElt</kbd>
+</p>
+
+<p>
+Returns the largest multiplicity of an irreducible character degree for the symmetric group of degree <kbd>n</kbd>. For low values of <kbd>n</kbd> this is returned from a lookup table. Above that we start hitting the limits of how big a set Magma is capable of
+constructing, so values above that have not been found.<br />
+
+
+</p>
+
+<p>
+<kbd>NumberOfIrreducibleSymmetricCharacterDegrees(n::RngIntElt) -> RngIntElt</kbd>
+</p>
+
+<p>
+Returns the cardinality of the set of irreducible character degrees of the symmetric group of degree <kbd>n</kbd>. For <kbd>n</kbd> up to 129 this is returned from a lookup table. Above that we start hitting the limits of how big a set Magma is capable of constructing, so
+values above 129 have not yet been found.<br />
+
+
+</p>
+
+<p>
+<kbd>AverageMultiplicityOfSymmetricCharacterDegree(n::RngIntElt:AsRational) -> .</kbd>
+</p>
+
+<p>
+Returns the average multiplicity of an irreducible character degree of the symmetric group of degree <kbd>n</kbd>. If the parameter AsRational is set to be true, a rational number is returned. Otherwise a real number is returned. For <kbd>n</kbd> up to 129 this is
+returned from a lookup table. Above 129 we start hitting the limits of how big a set Magma is capable of constructing, so values above 129 have not yet been found.<br />
+
+
+</p>
+
+<p>
+<kbd>MaximumMultiplicityOfSymmetricCharacterDegreeExceeds(n::RngIntElt,d::RngIntElt:<br />
+IgnoreSelfConjugatePartitions) -> BoolElt</kbd>
+</p>
+
+<p>
+Returns true if the maximum multiplicity of an irreducible character degree of the symmetric group of degree <kbd>n</kbd> exceeds <kbd>d</kbd>. This is checked with a lookup table for <kbd>n</kbd> at most 129 and by constructing enough character degrees to decide
+on the truth of the question if <kbd>n</kbd> is larger.
+</p>
+
+<p>
+If the parameter <kbd>IgnoreSelfConjugatePartitions</kbd>, default false, is set to true, only partitions that are not self-conjugate are considered, for applications to alternating groups.
+</p>
+<!--
+......   section -partitions and partition clusters ......
+-->
+<h4 id="autosec-15"><span class="sectionnumber">2.3&#x2003;</span>\(\infty \)-partitions and partition clusters</h4>
+<a id="symmetric-autopage-15"></a>
+
+
+<p>
+This section deals with \(\infty \)-partitions and clusters of partitions. These are taken from the paper <em>Symmetric group character degrees and hook numbers</em> from 2008, and are used to find collections of irreducible characters of \(S_n\) that all have the same
+hook lengths (clusters of partitions). We will not define the terms in this section, as you will probably not need this unless you are familiar with that paper.
+</p>
+
+<p>
+We give a new type, <kbd>InfPart</kbd>, which has a partition and a period as its inputs.
+</p>
+<!--
+......   subsection General commands ......
+-->
+<h5 id="autosec-16"><span class="sectionnumber">2.3.1&#x2003;</span>General commands</h5>
+<a id="symmetric-autopage-16"></a>
+
+
+<p>
+<kbd>InfinityPartition(pa::SeqEnum[RngIntElt],p::RngIntElt) -> InfPart</kbd>
+</p>
+
+<p>
+Given a partition <kbd>pa</kbd> of at most <kbd>p</kbd> parts, and an integer <kbd>p</kbd>, construct the corresponding infinity-partition.<br />
+
+
+</p>
+
+<p>
+<kbd>MissingHookLengths(X::InfPart) -> SetMulti</kbd>
+</p>
+
+<p>
+The missing hook lengths of the infinity-partition <kbd>X</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>SplinteredInfinityPartition(X::InfPart) -> InfPart</kbd>
+</p>
+
+<p>
+The splintered infinity-partition corresponding to <kbd>X</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>IsCluster(X::SetEnum[InfPart]) -> BoolElt</kbd><br />
+<kbd>IsCluster(X::SeqEnum[InfPart]) -> BoolElt</kbd>
+</p>
+
+<p>
+Returns true if the set <kbd>X</kbd> of infinity-partitions all have the same missing hook lengths.<br />
+
+
+</p>
+
+<p>
+<kbd>IsCluster(X::SeqEnum[SeqEnum]) -> BoolElt</kbd><br />
+<kbd>IsCluster(X::SeqEnum[SeqEnum]) -> BoolElt</kbd>
+</p>
+
+<p>
+Checks whether all partitions in <kbd>X</kbd> have the same hook lengths.<br />
+
+
+</p>
+
+<p>
+<kbd>IsPeriodicCluster(X::SeqEnum[SeqEnum[RngIntElt]]) -> BoolElt,SetEnum</kbd><br />
+<kbd>IsPeriodicCluster(X::SetEnum[SeqEnum[RngIntElt]]) -> BoolElt,SetEnum</kbd>
+</p>
+
+<p>
+Returns whether <kbd>X</kbd> is a cluster of partitions, and the set of integers <kbd>p</kbd> for which <kbd>X</kbd> forms a periodic cluster of period <kbd>p</kbd>. If the cluster is not periodic, it will return false.<br />
+
+
+</p>
+
+<p>
+<kbd>PeriodicClusterGenerator(X::SetEnum[SeqEnum[RngIntElt]],p:RngIntElt) -> SetEnum</kbd>
+</p>
+
+<p>
+Given a periodic cluster <kbd>X</kbd> with period <kbd>p</kbd>, returns the smallest periodic cluster in the same sequence as <kbd>X</kbd>, with the condition that the conjugate partitions of the elements in the cluster are distinct from the cluster. (The period must be
+specified as clusters may have more than one period.)<br />
+
+
+</p>
+
+<p>
+<kbd>PeriodicClusterExtension(X::SetEnum[SeqEnum[RngIntElt]],p::RngIntElt,n::RngIntElt) -> SetEnum</kbd>
+</p>
+
+<p>
+Given a periodic cluster <kbd>X</kbd> with period <kbd>p</kbd>, returns the periodic cluster obtained by extending this cluster by <kbd>n</kbd>. Note that while <kbd>n</kbd> may be negative, it cannot reduce the size of the cluster below that of the generator of the
+periodic cluster.<br />
+
+
+</p>
+
+<p>
+<kbd>DetermineClustersOfPartitions(n::RngIntElt) -> SeqEnum,SeqEnum</kbd>
+</p>
+
+<p>
+Determines all clusters among the partitions of of size <kbd>n</kbd>. The function returns the clusters of partitions, and also the hook lengths of each cluster. The function <kbd>DetermineLargeClustersOfPartitions</kbd> should be used if one wants just the clusters of
+order at least 3, as it is faster.<br />
+
+
+</p>
+
+<p>
+<kbd>DetermineLargeClustersOfPartitions(n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Determines all clusters of size at least 3 among the partitions of of size <kbd>n</kbd>. The function returns the clusters of partitions, and also the hook lengths of each cluster. This method is faster than <kbd>DetermineClustersOfPartitions</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>MatchInfinityPartitionsToClusters(X::SeqEnum[SetEnum[InfPart]],R::SeqEnum[SetEnum[SeqEnum]]) -> SeqEnum[SetEnum[SeqEnum]]</kbd>
+</p>
+
+<p>
+Given a collection <kbd>X</kbd> of clusters of infinity-partitions and a set <kbd>R</kbd> of clusters of partitions, finds all periodic clusters with infinity-partition from <kbd>X</kbd> and remainder from <kbd>R</kbd>. At the moment, all clusters in <kbd>X</kbd> and
+<kbd>R</kbd> should have cardinality 4 for this to work, as it is optimized to find periodic clusters of cardinality 8 (when taken with their conjugates).<br />
+
+
+</p>
+
+<p>
+<kbd>EnvelopingPartition(pa::SeqEnum[RngIntElt]) -> SeqEnum</kbd>
+</p>
+
+<p>
+Returns the enveloping partition corresponding to the partition <kbd>pa</kbd>. If <kbd>pa</kbd> and <kbd>pa2</kbd> have the same hook lengths then so do their enveloping partitions. Furthermore, they form a periodic cluster. This is the central construction in the
+2008 paper of Craven.
+</p>
+<!--
+......   subsection Commands to access databases ......
+-->
+<h5 id="autosec-17"><span class="sectionnumber">2.3.2&#x2003;</span>Commands to access databases</h5>
+<a id="symmetric-autopage-17"></a>
+
+
+<p>
+<kbd>InfinityPartitionClusters(p::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The known set of infinity-partition clusters of cardinality 4, small partition size and period at most 10. If <kbd>p</kbd> > 10 then no clusters are stored. If <kbd>p</kbd> < 7 then there are no clusters.<br />
+
+
+</p>
+
+<p>
+<kbd>PeriodicPartitionClusters(p::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+The known set of periodic partition clusters of cardinality 4 (8 with conjugates), small partition size and period at most 10. If <kbd>p</kbd> > 10 then no clusters are stored. If <kbd>p</kbd> < 7 then there are no clusters.<br />
+
+
+</p>
+
+<p>
+<kbd>PartitionClusters() -> SeqEnum</kbd>
+</p>
+
+<p>
+Returns all clusters of size greater than 2 for partitions of size at most 60.<br />
+
+
+</p>
+
+<p>
+<kbd>LargePartitionClusters(n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Returns all clusters of size greater than 2 for partitions of size <kbd>n</kbd> for <kbd>n</kbd> between 61 and 90.
+</p>
+<!--
+......   section Characters for     and   ......
+-->
+<h4 id="autosec-18"><span class="sectionnumber">2.4&#x2003;</span>Characters for \(\mathrm {GL}_n(q)\) and \(\mathrm {GU}_n(q)\)</h4>
+<a id="symmetric-autopage-18"></a>
+
+
+<p>
+This section gives some functions for computing the generic degrees of unipotent characters for \(\GL _n(q)\) and \(\GU _n(q)\), using the standard formula. They are included here as the degrees are closely related to those of the symmetric group, and use the hook
+formula.<br />
+
+
+</p>
+
+<p>
+<kbd>LusztigaFunction(pa::[RngIntElt]) -> RngIntElt</kbd>
+</p>
+
+<p>
+Returns the Lusztig \(a\)-function associated to the partition <kbd>pa</kbd>, i.e., the sum over i of (i-1) times the size of the ith part of <kbd>pa</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>LusztigAFunction(pa::[RngIntElt]) -> RngIntElt</kbd>
+</p>
+
+<p>
+Returns the Lusztig \(A\)-function associated to the partition <kbd>pa</kbd>, i.e., the degree of the generic degree of the unipotent character, so the sum of the Lusztig \(a\)-function and \(n+1\) choose \(2\) minus the sum of the hook lengths of <kbd>pa</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>GLGenericDegree(pa::[RngIntElt]) -> RngUPolElt</kbd>
+</p>
+
+<p>
+Computes the generic degree of the unipotent character of \(\GL _n(q)\) associated to the partition <kbd>pa</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>GUGenericDegree(pa::[RngIntElt]) -> RngUPolElt</kbd>
+</p>
+
+<p>
+Computes the generic degree of the unipotent character of \(\GU _n(q)\) associated to the partition <kbd>pa</kbd>.
+</p>
+<!--
+......   chapter Restrictions of characters of Sylow subgroups ......
+-->
+<h3 id="autosec-19">Chapter&nbsp;<span class="sectionnumber">3&#x2003;</span>Restrictions of characters of Sylow subgroups</h3>
+<a id="symmetric-autopage-19"></a>
+
+
+<p>
+These commands concern restricting characters to Sylow \(p\)-subgroups \(P\) of symmetric groups, and calculating their inner products with linear characters of the symmetric groups. Since characters of \(S_n\) are constant on cycle types, when restricting to a Sylow
+\(p\)-subgroup we only need understand the values of the character on cycle types all of whose parts are powers of \(p\). We then need to understand the distribution of those cycle types among the conjugacy classes of \(P\). If, however, we consider linear characters
+only, it suffices to understand the cycle type structure among the cosets of the derived subgroup \(P&apos;\) of \(P\), which is a soluble problem. The matrix of this distribution has been computed for \(n = 4, 8, 16, 32, 64, 128\), so calculations can be made for
+these \(n\) when \(p = 2\). For \(p\) odd this can in theory be done, but choices about the linear characters, their labelling and so on need to be made, and I have not done so at this time. (For \(p\) odd, the restrictions of characters of \(S_n\) cannot be used to
+distinguish between linear characters of \(P\). One can see this since characters of \(P\) have \(p\)th roots of unity and characters of \(S_n\) are integer-valued. Thus it seems reasonable to bundle together all Galois orbits of linear characters for \(P\).)
+</p>
+
+<p>
+Some of the commands below take the prime \(p\) as a parameter as well, because they have been written in a characteristic-free manner.<br />
+
+
+</p>
+
+<p>
+<kbd>PartitionToGroupElement(pa::SeqEnum[RngIntElt]) -> GrpPermElt</kbd>
+</p>
+
+<p>
+A permutation of a symmetric group with cycle type <kbd>pa</kbd>. Although the name suggests that <kbd>pa</kbd> must be a partition, any composition will work.<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricCharacterValue(pa::SeqEnum[RngIntElt],pe::SeqEnum[RngIntElt]) -> RngIntElt</kbd>
+</p>
+
+<p>
+Returns the irreducible character value for the character labelled by the partition <kbd>pa</kbd> on a permutation of a symmetric group with cycle type the composition <kbd>pe</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricCharacterValues(pa::SeqEnum[RngIntElt],cy::SeqEnum[SeqEnum[RngIntElt]]) -> SeqEnum</kbd>
+</p>
+
+<p>
+The values of the irreducible character labelled by the partition <kbd>pa</kbd> evaluated at the cycle types given by <kbd>cy</kbd>. Note that <kbd>cy</kbd> is a list of partitions/compositions, and not a list of group elements.<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricSylowCycleTypes(n::RngIntElt,p::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+A list of all possible cycle types of elements in a Sylow <kbd>p</kbd>-subgroup of a symmetric group of degree <kbd>n</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricSylow2LinearCharacters(n::RngIntElt) -> Mtrx</kbd>
+</p>
+
+<p>
+The linear characters of a Sylow 2-subgroup of the symmetric group of degree <kbd>n</kbd>, given as a (square) matrix. Note that <kbd>n</kbd> must be a power of 2. This function has a certain labelling of the rows and columns. The labelling of the columns is based on
+the structure of the Sylow subgroup of the symmetric group, and the labelling of the rows is arbitrary.<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricCharacterSylowRestriction(pa::SeqEnum[RngIntElt],p::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Returns the restriction of the irreducible character labelled by the partition <kbd>pa</kbd> to a Sylow <kbd>p</kbd>-subgroup of the symmetric group. The ordering on the elements of a Sylow <kbd>p</kbd>-subgroup of the symmetric group is given by the function
+<kbd>SymmetricSylowCycleTypes</kbd>. For hook partitions restricted to the Sylow <kbd>p</kbd>-subgroup, use the function <kbd>SymmetricCharacterHookRestrictions</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricCharacterHookRestrictions(n::RngIntElt,p::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Computes (quickly) the restrictions of characters associated to all hook partitions to a Sylow <kbd>p</kbd>-subgroup of the symmetric group of degree <kbd>n</kbd>.<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricSylowConjugateCharacter(ch::SeqEnum[RngIntElt],n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Given a character of a symmetric group of degree <kbd>n</kbd> restricted to a Sylow 2-subgroup, returns the conjugate character, i.e., the tensor product of ch with the sign character. (This function is not needed if <kbd>p</kbd> is odd, as there are no conjugate
+characters of a Sylow <kbd>p</kbd>-subgroup.)<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricSylowRestrictionInnerProducts(ch::SeqEnum[RngIntElt],n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Returns the list of inner products of the restricted character <kbd>ch</kbd> of the symmetric group of degree <kbd>n</kbd> with the linear characters according to the labelling by hook partitions. This method currently only works for <kbd>n</kbd> in \(\{4, 8, 16, 32,
+64, 128\}\).<br />
+
+
+</p>
+
+<p>
+<kbd>SymmetricSylowRestrictionInnerProducts(X::SeqEnum[SeqEnum[RngIntElt]],n::RngIntElt) -> SeqEnum</kbd>
+</p>
+
+<p>
+Returns the list of inner products of the collection <kbd>X</kbd> of restricted characters of the symmetric group of degree <kbd>n</kbd> with the linear characters according to the labelling by hook partitions. This method currently only works for <kbd>n</kbd> in \(\{4,
+8, 16, 32, 64, 128\}\).
+</p>
+<!--
+......   chapter Changes since original ......
+-->
+<h3 id="autosec-20">Chapter&nbsp;<span class="sectionnumber">4&#x2003;</span>Changes since original</h3>
+<a id="symmetric-autopage-20"></a>
+<!--
+......   section Changes in V1.4 ......
+-->
+<h4 id="autosec-21">Changes in V1.4</h4>
+<a id="symmetric-autopage-21"></a>
+
+
+<ul style="list-style-type:none">
+
+
+<li>
+<p>
+• Maximum multiplicities and character degree set lookup tables increased to 129.
+</p>
+
+
+</li>
+<li>
+
+
+<p>
+• Increased <kbd>LargePartitionClusters</kbd> up to <kbd>n</kbd> at most 90.
+</p>
+</li>
+</ul>
+<!--
+......   section Changes in V1.3 ......
+-->
+<h4 id="autosec-22">Changes in V1.3</h4>
+<a id="symmetric-autopage-22"></a>
+
+
+<ul style="list-style-type:none">
+
+
+<li>
+<p>
+• New function <kbd>PartitionToIndex</kbd>, which is much faster than the Magma inbuilt function <kbd>IndexOfPartition</kbd> for larger partitions, over around size 80.
+</p>
+
+
+</li>
+<li>
+
+
+<p>
+• Increased <kbd>LargePartitionClusters</kbd> up to <kbd>n</kbd> at most 87.
+</p>
+
+
+</li>
+<li>
+
+
+<p>
+• Maximal character degree values increased to 150.
+</p>
+</li>
+</ul>
+<!--
+......   section Changes in V1.2 ......
+-->
+<h4 id="autosec-23">Changes in V1.2</h4>
+<a id="symmetric-autopage-23"></a>
+
+
+<ul style="list-style-type:none">
+
+
+<li>
+<p>
+• Fixed a bug in <kbd>InfinityPartition</kbd> constructor.
+</p>
+
+
+</li>
+<li>
+
+
+<p>
+• Added commands <kbd>PrintReducedFormPartition</kbd>, <kbd>NumberOfPartitionsWithAtMostParts</kbd>,<br />
+<kbd>NumberOfPartitionsWithExactlyParts</kbd>, <kbd>SelfConjugateEndoskeleton</kbd>, <kbd>SelfConjugateExoskeleton</kbd>, <kbd>IndexToPartition</kbd>, <kbd>NumberOfSymmetricConjugacyClassSizes</kbd> <kbd>EnvelopingPartition</kbd>,<br />
+<kbd>LargePartitionClusters</kbd>, <kbd>DetermineLargeClustersOfPartitions</kbd>, <kbd>LusztigaFunction</kbd>, <kbd>LusztigAFunction</kbd>, <kbd>GLGenericDegree</kbd> and <kbd>GUGenericDegree</kbd>.
+</p>
+
+
+</li>
+<li>
+
+
+<p>
+• Functions in Sylow restrictions section upgraded to deal with <kbd>n</kbd> = 128.
+</p>
+
+
+</li>
+<li>
+
+
+<p>
+• Maximum multiplicities and character degree set lookup tables increased to 115.
+</p>
+
+
+</li>
+<li>
+
+
+<p>
+• Maximal character degree values increased to 135.
+</p>
+</li>
+</ul>
+<!--
+......    section Changes in V1.1 ......
+-->
+<h4 id="autosec-24">Changes in V1.1</h4>
+<a id="symmetric-autopage-24"></a>
+
+
+<ul style="list-style-type:none">
+
+
+<li>
+<p>
+• Improved some help wording.
+</p>
+</li>
+</ul>
+
+<a id="symmetric-autofile-last"></a>
+</section>
+
+</main>
+
+</div>
+
+</body>
+</html>
