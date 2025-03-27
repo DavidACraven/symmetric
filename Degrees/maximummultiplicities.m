@@ -1,46 +1,160 @@
 intrinsic MaximumMultiplicityOfSymmetricCharacterDegree(n::RngIntElt) -> RngIntElt
-{Returns the largest multiplicity of an irreducible character degree for the symmetric group of degree n. For n up to 115 this is returned from a lookup table. Otherwise the result is calculated, which will take a long time, and more than 500GB of RAM.}
+{Returns the largest multiplicity of an irreducible character degree for the symmetric group of degree n. For n up to 129 this is returned from a lookup table. Above that we start hitting the limits of how big a set Magma is capable of constructing.}
 
 requirege n,1;
 
-// Up to 115. Cannot easily do more without splitting the set.
+// Up to 129. Cannot easily do more without splitting the set.
 
 MaxMults:=[1,2,2,2,2,4,4,2,3,2,4,4,6,6,6,4,8,6,10,6,8,8,12,8,12,12,10,12,22,14,12,12,16,18,30,14,20,26,16,20,22,20,26,25,24,24,
-32,16,32,30,26,24,32,32,40,32,34,32,32,34,44,30,44,36,52,34,54,38,56,50,48,44,50,44,58,46,60,48,58,64,72,56,58,66,86,
-68,86,78,94,102,84,84,94,80,104,96,104,104,96,104,110,106,112,102,146,104,120,114,132,126,136,126,130,108,144];
+32,16,32,30,26,24,32,32,40,32,34,32,32,34,44,30,44,36,52,34,54,38,56,50,48,44,50,44,58,46,60,48,58,64,72,56,58,66,86,68,86,78,
+94,102,84,84,94,80,104,96,104,104,96,104,110,106,112,102,146,104,120,114,132,126,136,126,130,108,144,120,172,114,142,158,160,
+140,176,178,188,194,164,174,224];
 
 if(n le #MaxMults) then return MaxMults[n]; end if;
 
 // We now have to calculate it since we have reached the end of our look-up table.
 
-num:=NumberOfPartitions(n);
-P:=[n];
-CharDegs:={**};
+n2:=Floor(Sqrt(n));
+num:=NumberOfPartitions(n); num2:=500000000;
+pa:=[n];
 g:=Sym(n)!1;
-for i in [1..num] do
-  if(P lt ConjugatePartition(P)) then NextPartition(~P,n); continue i; end if;
-  t:=SymmetricCharacterValue(P,g);
-  Include(~CharDegs,t); if(not ConjugatePartition(P) eq P) then Include(~CharDegs,t); end if;
+CharDegs:={*1^^2*};
+time for i in [2..num2] do
+  if i mod 100000000 eq 0 then i,num; end if;
+  nn:=Position(pa,1);
+  if(nn eq 0) then
+    pa2:=Prune(pa) cat [pa[#pa]-1,1];
+  else
+    // So now the last part is 1.
+    firstpart:=pa[nn-1]-1;
+    origpart:=[pa[i]:i in [1..nn-2]];
+    rest:=n-&+(origpart cat [0]);
+    a:=rest div firstpart;
+    b:=rest mod firstpart;
+    pa2:=origpart cat [firstpart:i in [1..a]];
+    if b ne 0 then Append(~pa2,b); end if;
+  end if;
+  if(pa[1] le n2 and pa[1] ne #pa) then break i; end if;
+  delete pa; pa:=pa2; delete pa2;
+  if #pa gt pa[1] then continue i; end if;
+  t:=SymmetricCharacterValue(pa,g);
+  Include(~CharDegs,t); if #pa lt pa[1] then Include(~CharDegs,t); end if;
   delete t;
-  NextPartition(~P,n);
+//  if(pa[1] le n2) then break i; end if;
 end for;
-return Maximum(Multiplicities(CharDegs));
+
+
+CharDegs2:={**};
+for i in [num2+1..2*num2] do
+  if i mod 100000000 eq 0 then i,num; end if;
+  nn:=Position(pa,1);
+  if(nn eq 0) then
+    pa2:=Prune(pa) cat [pa[#pa]-1,1];
+  else
+    // So now the last part is 1.
+    firstpart:=pa[nn-1]-1;
+    origpart:=[pa[i]:i in [1..nn-2]];
+    rest:=n-&+(origpart cat [0]);
+    a:=rest div firstpart;
+    b:=rest mod firstpart;
+    pa2:=origpart cat [firstpart:i in [1..a]];
+    if b ne 0 then Append(~pa2,b); end if;
+  end if;
+  delete pa; pa:=pa2; delete pa2;
+  if(pa[1] le n2 and pa[1] ne #pa) then break i; end if;
+  if #pa gt pa[1] then continue i; end if;
+  t:=SymmetricCharacterValue(pa,g);
+  if(t in CharDegs) then
+    Include(~CharDegs,t); if #pa lt pa[1] then Include(~CharDegs,t); end if;
+  else
+    Include(~CharDegs2,t); if #pa lt pa[1] then Include(~CharDegs2,t); end if;
+  end if;
+  delete t;
+//  if(pa[1] le n2) then break i; end if;
+end for;
+
+CharDegs3:={**};
+for i in [2*num2+1..3*num2] do
+  if i mod 100000000 eq 0 then i,num; end if;
+  nn:=Position(pa,1);
+  if(nn eq 0) then
+    pa2:=Prune(pa) cat [pa[#pa]-1,1];
+  else
+    // So now the last part is 1.
+    firstpart:=pa[nn-1]-1;
+    origpart:=[pa[i]:i in [1..nn-2]];
+    rest:=n-&+(origpart cat [0]);
+    a:=rest div firstpart;
+    b:=rest mod firstpart;
+    pa2:=origpart cat [firstpart:i in [1..a]];
+    if b ne 0 then Append(~pa2,b); end if;
+  end if;
+  delete pa; pa:=pa2; delete pa2;
+  if(pa[1] le n2 and pa[1] ne #pa) then break i; end if;
+  if #pa gt pa[1] then continue i; end if;
+  t:=SymmetricCharacterValue(pa,g);
+  if(t in CharDegs) then
+    Include(~CharDegs,t); if #pa lt pa[1] then Include(~CharDegs,t); end if;
+  elif(t in CharDegs2) then
+    Include(~CharDegs2,t); if #pa lt pa[1] then Include(~CharDegs2,t); end if;
+  else
+    Include(~CharDegs3,t); if #pa lt pa[1] then Include(~CharDegs3,t); end if;
+  end if;
+  delete t;
+//  if(pa[1] le n2) then break i; end if;
+end for;
+
+CharDegs4:={**};
+for i in [3*num2+1..num] do
+  if i mod 100000000 eq 0 then i,num; end if;
+  nn:=Position(pa,1);
+  if(nn eq 0) then
+    pa2:=Prune(pa) cat [pa[#pa]-1,1];
+  else
+    // So now the last part is 1.
+    firstpart:=pa[nn-1]-1;
+    origpart:=[pa[i]:i in [1..nn-2]];
+    rest:=n-&+(origpart cat [0]);
+    a:=rest div firstpart;
+    b:=rest mod firstpart;
+    pa2:=origpart cat [firstpart:i in [1..a]];
+    if b ne 0 then Append(~pa2,b); end if;
+  end if;
+  delete pa; pa:=pa2; delete pa2;
+  if(pa[1] le n2 and pa[1] ne #pa) then break i; end if;
+  if #pa gt pa[1] then continue i; end if;
+  t:=SymmetricCharacterValue(pa,g);
+  if(t in CharDegs) then
+    Include(~CharDegs,t); if #pa lt pa[1] then Include(~CharDegs,t); end if;
+  elif(t in CharDegs2) then
+    Include(~CharDegs2,t); if #pa lt pa[1] then Include(~CharDegs2,t); end if;
+  elif(t in CharDegs3) then
+    Include(~CharDegs3,t); if #pa lt pa[1] then Include(~CharDegs3,t); end if;
+  else
+    Include(~CharDegs3,t); if #pa lt pa[1] then Include(~CharDegs3,t); end if;
+  end if;
+  delete t;
+//  if(pa[1] le n2) then break i; end if;
+end for;
+
+return Maximum([Maximum(Multiplicities(i)):i in [CharDegs,CharDegs2,CharDegs3,CharDegs4]|#i ne 0]);
 
 end intrinsic;
 
 intrinsic NumberOfIrreducibleSymmetricCharacterDegrees(n::RngIntElt) -> RngIntElt
-{Returns the cardinality of the set of irreducible character degrees of the symmetric group of degree n. For n up to 115 this is returned from a lookup table. Otherwise the result is calculated, which will take a long time, and more than 500GB of RAM.}
+{Returns the cardinality of the set of irreducible character degrees of the symmetric group of degree n. For n up to 129 this is returned from a lookup table. Above that we start hitting the limits of how big a set Magma is capable of constructing.}
 
 requirege n,1;
 
-// Up to 115. Cannot easily do more without splitting the set.
+// Up to 129. Cannot easily do more without splitting the set.
 
 CardSymChar:=[1,1,2,3,4,5,7,12,15,22,28,38,45,52,81,107,130,179,194,280,348,438,502,693,848,1037,1274,1594,1847,2473,2851,3652,4271,
 5137,6140,7995,9103,11046,12978,16216,18348,23153,26239,31880,37582,45144,51469,63571,71910,86693,100776,121305,136541,164954,186709,
 224614,257334,303932,343577,414191,466517,549489,627545,740341,832921,986960,1116377,1304731,1472704,1723474,1945317,2289555,2567089,
 2976885,3369079,3925229,4392363,5109080,5742421,6638468,7472779,8611544,9630984,11144053,12469585,14345342,16123006,18511428,20616477,
 23602145,26481657,30305882,33857237,38663957,43083318,49291288,54930417,62398576,69705598,79275230,88301249,100316970,111786442,
-126468513,140532749,159604333,177457734,200826601,223135990,250911575,279621935,315542590,349844381,393774500,437208361];
+126468513,140532749,159604333,177457734,200826601,223135990,250911575,279621935,315542590,349844381,393774500,437208361,492386403,
+545063079,613077422,678624666,761389369,844446594,946108105,1047515088,1174135629,1294655994,1449462726,1606613031,1793990910,1980313502];
 
 if n le #CardSymChar then return CardSymChar[n]; end if;
 // We now have to calculate it since we have reached the end of our look-up table.
@@ -57,7 +171,7 @@ return #CharDegs;
 end intrinsic;
 
 intrinsic AverageMultiplicityOfSymmetricCharacterDegree(n::RngIntElt:AsRational) -> .
-{Returns the average multiplicity of an irreducible character degree of the symmetric group of degree n. If the parameter AsRational is set to be true, a rational number is returned. Otherwise a real number is returned. For n up to 115 this is returned from a lookup table. Otherwise the result is calculated, which will take a long time, and more than 500GB of RAM.}
+{Returns the average multiplicity of an irreducible character degree of the symmetric group of degree n. If the parameter AsRational is set to be true, a rational number is returned. Otherwise a real number is returned. For n up to 129 this is returned from a lookup table. Otherwise the result is calculated, which will take a long time, and more than 200GB of RAM.}
 
 requirege n,1;
 require Type(AsRational) eq BoolElt: "Parameter AsRational is not a Boolean";
@@ -72,7 +186,7 @@ end if;
 end intrinsic;
 
 intrinsic MaximumMultiplicityOfSymmetricCharacterDegreeExceeds(n::RngIntElt,d::RngIntElt:IgnoreSelfConjugatePartitions:=false) -> BoolElt
-{Returns true if the maximum multiplicity of an irreducible character degree of the symmetric group of degree n exceeds d. This is checked with a lookup table for n at most 115 and by constructing enough character degrees to decide on the truth of the question if n is larger. If the parameter IgnoreSelfConjugatePartitions, default false, is set to true, only partitions that are not self-conjugate are considered, for applications to alternating groups.}
+{Returns true if the maximum multiplicity of an irreducible character degree of the symmetric group of degree n exceeds d. This is checked with a lookup table for n at most 129 and by constructing enough character degrees to decide on the truth of the question if n is larger. If the parameter IgnoreSelfConjugatePartitions, default false, is set to true, only partitions that are not self-conjugate are considered, for applications to alternating groups.}
 
 requirege n,1;
 requirege d,1;
@@ -94,8 +208,8 @@ if(IgnoreSelfConjugatePartitions) then
   return false;
 end if;
 
-// Now the general case. For n<115 we can use the known maximal multiplicity.
-if(n le 115) then return MaximumMultiplicityOfSymmetricCharacterDegree(n) gt d; end if;
+// Now the general case. For n<129 we can use the known maximal multiplicity.
+if(n le 129) then return MaximumMultiplicityOfSymmetricCharacterDegree(n) gt d; end if;
 
 // So now we have to check, since n is large
 num:=NumberOfPartitions(n);
